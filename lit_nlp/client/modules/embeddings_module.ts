@@ -49,6 +49,11 @@ interface NearestNeighborsResult {
   id: string;
 }
 
+interface EmbeddingOptions {
+  modelName?: string;
+  fieldName: string;
+}
+
 const NN_INTERPRETER_NAME = 'nearest neighbors';
 // TODO(lit-dev): Make the number of nearest neighbors configurable in the UI.
 const DEFAULT_NUM_NEAREST = 10;
@@ -125,12 +130,17 @@ export class EmbeddingsModule extends LitModule {
   }
 
   @computed
-  get embeddingOptions() {
-    return this.appState.currentModels.flatMap((modelName: string) => {
-      const modelSpec = this.appState.metadata.models[modelName].spec;
-      const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
-      return embKeys.map((fieldName) => ({modelName, fieldName}));
-    });
+  get embeddingOptions(): EmbeddingOptions[] {
+    const modelOptions: EmbeddingOptions[] =
+        this.appState.currentModels.flatMap((modelName: string) => {
+          const modelSpec = this.appState.metadata.models[modelName].spec;
+          const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
+          return embKeys.map((fieldName) => ({modelName, fieldName}));
+        });
+    const datasetOptions =
+        findSpecKeys(this.appState.currentDatasetSpec, 'Embeddings').map(
+            key => ({fieldName: key}));
+    return modelOptions.concat(datasetOptions);
   }
 
   /**
@@ -139,7 +149,13 @@ export class EmbeddingsModule extends LitModule {
   @computed
   get embeddingOptionNames() {
     return this.embeddingOptions.map(
-        option => `${option.modelName}:${option.fieldName}`);
+        option => {
+          if (option.modelName != null) {
+            return `${option.modelName}:${option.fieldName}`;
+          } else {
+            return `${option.fieldName}`;
+          }
+        });
   }
 
   @computed
@@ -197,13 +213,20 @@ export class EmbeddingsModule extends LitModule {
 
   private async getNearestNeighbors(
       example: IndexedInput, numNeighbors: number = DEFAULT_NUM_NEAREST) {
-    const {modelName, fieldName} =
+    let {modelName, fieldName} =
         this.embeddingOptions[this.selectedEmbeddingsIndex];
+    const useInput = modelName == null;
+
+    // API requires a model name so send first model even if no model needed.
+    if (modelName == null) {
+      modelName = this.appState.currentModels[0];
+    }
     const datasetName = this.appState.currentDataset;
     const config: CallConfig = {
       'dataset_name': datasetName,
       'embedding_name': fieldName,
       'num_neighbors': numNeighbors,
+      'use_input': useInput,
     };
 
     // All indexed inputs in the dataset are passed in, with the main example
@@ -343,13 +366,19 @@ export class EmbeddingsModule extends LitModule {
     if (!embeddingsInfo) {
       return;
     }
-    const {modelName, fieldName} = embeddingsInfo;
+    let {modelName, fieldName} = embeddingsInfo;
 
     const datasetName = this.appState.currentDataset;
+    const useInput = modelName == null;
+    // API requres a model name so use the first one if none is required.
+    if (modelName == null) {
+      modelName = this.appState.currentModels[0];
+    }
     const projConfig = {
       'dataset_name': datasetName,
       'model_name': modelName,
       'field_name': fieldName,
+      'use_input': useInput,
       'proj_kw': {'n_components': 3},
     };
     // Projections will be returned for the whole dataset, including generated

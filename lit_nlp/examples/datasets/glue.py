@@ -10,6 +10,7 @@ datasets just contain regular Python/NumPy data.
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 
+import numpy as np
 import tensorflow_datasets as tfds
 
 
@@ -57,17 +58,20 @@ class SST2Data(lit_dataset.Dataset):
 
   LABELS = ['0', '1']
 
+  # TODO(jwexler): DO NOT SUBMIT, Test-only change.
   def __init__(self, split: str):
     self._examples = []
     for ex in load_tfds('glue/sst2', split=split):
       self._examples.append({
           'sentence': ex['sentence'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
+          'input_embs': np.random.rand(10).tolist()
       })
 
   def spec(self):
     return {
         'sentence': lit_types.TextSegment(),
+        'input_embs': lit_types.Embeddings(),
         'label': lit_types.CategoryLabel(vocab=self.LABELS)
     }
 

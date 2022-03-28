@@ -490,7 +490,8 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
+    } else if (isLitSubtype(fieldSpec,
+                            ['Tokens', 'SequenceTags', 'Embeddings'])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
