@@ -131,7 +131,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if "summarization" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "TYDIQA Model"] = tydi.QAWrapper(m)
-    datasets["TYDIQAData"] = summarization.TYDIQAData(
+    datasets["TYDIQAData"] = summarization.TYDIQA(
         split="validation-en", max_examples=_MAX_EXAMPLES.value)
 
 
